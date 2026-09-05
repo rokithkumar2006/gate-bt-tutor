@@ -1,0 +1,863 @@
+import type { Topic } from '../types';
+
+// ============ ENGINEERING MATHEMATICS ============
+export const TOPICS_EMT: Topic[] = [
+  {
+    id: 'emt-linalg',
+    subject: 'engineering-mathematics',
+    name: 'Linear Algebra',
+    level: 1,
+    priority: 'high',
+    ord: 1,
+    short: 'Matrices, eigenvalues and the geometry of vectors.',
+    basic: {
+      what: 'Linear algebra studies vectors and linear transformations, represented by matrices. Key ideas: solving Ax = b, determinant (volume/solvability), rank, eigenvalues/vectors.',
+      why: 'Eigenvalue problems appear in stability, vibrations, Markov chains and Markov-type GATE questions.',
+      how: 'det(A) = 0 → singular (no unique solution). Rank = independent rows. Eigen: Av = λv → det(A − λI) = 0. Orthogonal matrix: A^T A = I.',
+      where: 'Differential equations, numerical methods, Markov chains, PCA.',
+    },
+    college: [
+      'Trace = sum of diagonal = sum of eigenvalues; determinant = product of eigenvalues.',
+      'Symmetric matrix → real eigenvalues, orthogonal eigenvectors (diagonalisable by orthogonal matrix).',
+      'Positive definite: all eigenvalues > 0 (quadratic form > 0).',
+      'Gaussian elimination (LU), Cramer’s rule, matrix inversion (adjugate).',
+      'Rank–nullity: rank + nullity = n.',
+    ],
+    advanced: [
+      'SVD (A = UΣV^T): least squares, PCA, compression.',
+      'Similar matrices (P^−1AP) share eigenvalues; Jordan form for defective matrices.',
+    ],
+    gate: {
+      highYield: [
+        'det = 0 → singular; trace = Σλ; det = Πλ.',
+        'Symmetric → real λ, orthogonal eigenvectors.',
+        'Positive definite ⇔ all λ > 0.',
+        'Rank–nullity theorem.',
+        'Eigen equation det(A−λI)=0.',
+      ],
+      traps: [
+        'A matrix with a zero row is singular (det=0) — but a zero COLUMN too; either kills the determinant.',
+        'Eigenvalues of A and A^T are the same (characteristic polynomial identical).',
+      ],
+    },
+    examples: [
+      'Markov chain: transition matrix P; steady state = eigenvector for λ=1.',
+      'Vibrations: Kφ = ω²Mφ → generalised eigenvalue problem.'],
+    formulas: [
+      { name: 'Eigen equation', expr: 'det(A − λI) = 0' },
+      { name: 'Trace/det', expr: 'tr(A) = Σλ; det(A) = Πλ' },
+    ],
+    keyPoints: [
+      'det=0 singular; tr=Σλ; det=Πλ.',
+      'Symmetric → real, orthogonal eigenvectors.',
+      'Pos. definite ⇔ λ>0.',
+      'Rank + nullity = n.',
+    ],
+    revision: {
+      remember: 'tr=Σλ, det=Πλ, symmetric→orthogonal, rank+nullity=n.',
+      mistakes: ['Singular needs det=0 (either zero row/column).'],
+      summary: 'Matrix ops + eigen theory + positive definiteness + rank–nullity.',
+    },
+    related: ['emt-ode', 'emt-numerical'],
+  },
+  {
+    id: 'emt-calculus',
+    subject: 'engineering-mathematics',
+    name: 'Calculus: Multivariable & Vector',
+    level: 1,
+    priority: 'high',
+    ord: 2,
+    short: 'Partials, gradients, line/surface integrals and the theorems.',
+    basic: {
+      what: 'Multivariable calculus extends derivatives and integrals to functions of several variables: partial derivatives, gradient, line/surface integrals, and the big theorems (Green, Stokes, Divergence).',
+      why: 'The vector theorems (Green/Stokes/Divergence) are classic GATE questions.',
+      how: 'Gradient ∇f = direction of steepest ascent. Directional derivative = ∇f·û. Line integral ∫C F·dr; surface ∬S F·n dS. Divergence theorem: ∭V (∇·F) dV = ∬S F·n dS.',
+      where: 'Field theory, transport (continuity equation), EM, fluid mechanics.',
+    },
+    college: [
+      'Gradient: conservative field (F = ∇φ → line integral path-independent).',
+      'Curl: ∇×F; circulation; Stokes: ∬S (∇×F)·n dS = ∮C F·dr.',
+      'Divergence: ∇·F = net outflow per volume; Gauss/Divergence theorem.',
+      'Taylor series (multivariable); Lagrange multipliers (constrained extrema).',
+      'Curvilinear coordinates (cylindrical, spherical) for integrals.',
+    ],
+    advanced: [
+      'Distributions (Dirac delta) and their use in Green’s functions.',
+      'Helmholtz decomposition: any vector field = gradient + curl part.',
+    ],
+    gate: {
+      highYield: [
+        'Gradient (conservative → path-independent line integral = 0 for closed loop).',
+        'Divergence theorem (volume ↔ surface).',
+        'Stokes theorem (surface ↔ boundary line).',
+        'Lagrange multipliers for constrained optimisation.',
+      ],
+      traps: [
+        'A conservative field has ZERO circulation around any closed loop (∮F·dr = 0) — a true/false anchor.',
+        'Divergence theorem needs a CLOSED surface (volume inside) — an applicability question.',
+      ],
+    },
+    examples: [
+      'Incompressible flow: ∇·v = 0 (continuity).',
+      'Stokes: circulation around a wing cross-section ↔ vorticity flux through the surface.'],
+    formulas: [
+      { name: 'Divergence thm', expr: '∭(∇·F)dV = ∬F·n dS' },
+      { name: 'Stokes', expr: '∬(∇×F)·n dS = ∮C F·dr' },
+    ],
+    keyPoints: [
+      '∇f = steepest ascent; conservative → ∮=0.',
+      'Divergence: volume ↔ closed surface.',
+      'Stokes: surface ↔ boundary curve.',
+      'Lagrange = constrained extrema.',
+    ],
+    revision: {
+      remember: '∮conservative=0; divergence closed surface; Stokes boundary.',
+      mistakes: ['Divergence on open surface.'],
+      summary: 'Gradient/curl/divergence + Green/Stokes/Divergence + Lagrange.',
+    },
+    related: ['emt-ode', 'trp-momentum'],
+  },
+  {
+    id: 'emt-ode',
+    subject: 'engineering-mathematics',
+    name: 'Differential Equations',
+    level: 2,
+    priority: 'high',
+    ord: 3,
+    short: 'ODEs: solving, stability and the Laplace toolbox.',
+    basic: {
+      what: 'Differential equations relate a function to its derivatives. First-order linear (integrating factor), second-order (characteristic equation), and systems (matrix form). The Laplace transform converts them to algebra.',
+      why: 'Growth/decay, RC circuits, vibrations and stability all reduce to ODEs — a GATE staple.',
+      how: '1st order linear: y′ + py = q → IF = e^∫p; (IF·y)′ = IF·q. 2nd order constant coeff: r² + ar + b = 0 → roots determine e^rt, t·e^rt, or sin/cos. Laplace: L{y′} = sY − y(0).',
+      where: 'Population models, circuits, heat, control systems.',
+    },
+    college: [
+      'Superposition: general = homogeneous + particular.',
+      'Variation of parameters; undetermined coefficients (for simple forcing).',
+      'Stability: homogeneous solution decays (Re(λ) < 0) → stable; grows → unstable.',
+      'Laplace: standard pairs (1/s, 1/(s+a), ω/((s²+ω²))); final value theorem (stable systems).',
+      'Systems: dy/dt = Ay → solution e^(At); eigenvalues of A = modes.',
+    ],
+    advanced: [
+      'Phase plane and limit cycles (qualitative analysis).',
+      'Perturbation methods and WKB for slowly varying systems.',
+    ],
+    gate: {
+      highYield: [
+        '1st order linear (integrating factor) and 2nd order (characteristic roots).',
+        'Root type → solution form (real distinct, repeated, complex).',
+        'Laplace standard pairs + final value theorem (stability condition).',
+        'System stability = eigenvalues with Re < 0.',
+      ],
+      traps: [
+        'Final value theorem is valid only if the system is STABLE (poles in LHP) — an applicability trap.',
+        'Repeated root gives t·e^(rt) (not just e^(rt)) — a form trap.',
+      ],
+    },
+    examples: [
+      'Microbial growth dX/dt = µX → X = X0e^(µt) (1st order homogeneous).',
+      'RC circuit: time constant τ = RC; step response 1 − e^(−t/τ).'],
+    formulas: [
+      { name: '1st order IF', expr: 'IF = e^(∫p dt); y = (∫IF·q dt + C)/IF' },
+      { name: 'Laplace derivative', expr: 'L{y′} = sY(s) − y(0)' },
+    ],
+    keyPoints: [
+      'IF for 1st order linear; characteristic roots for 2nd.',
+      'Root type → solution form.',
+      'Laplace pairs + final value (stable only).',
+      'Stability = Re(eigen) < 0.',
+    ],
+    revision: {
+      remember: 'IF + roots; Laplace pairs; FVT needs stability; Re<0 stable.',
+      mistakes: ['FVT on unstable systems.'],
+      summary: 'ODE solution methods + Laplace + stability via eigenvalues.',
+    },
+    related: ['emt-linalg', 'emt-transforms', 'trp-control'],
+  },
+  {
+    id: 'emt-pde',
+    subject: 'engineering-mathematics',
+    name: 'Partial Differential Equations',
+    level: 3,
+    priority: 'medium',
+    ord: 4,
+    short: 'Heat, wave and Laplace equations by separation.',
+    basic: {
+      what: 'PDEs involve derivatives in several variables. The three canonical types: heat (diffusion), wave (vibration), and Laplace (steady state). Separation of variables solves all three on simple domains.',
+      why: 'Heat equation and separation of variables are classic GATE PDE questions.',
+      how: 'Separation: assume u(x,t) = X(x)T(t) → two ODEs. Heat: u_t = α²u_xx (diffusion, parabolic). Wave: u_tt = c²u_xx (hyperbolic). Laplace: ∇²u = 0 (elliptic, steady).',
+      where: 'Heat conduction, vibrations, potential flow, steady temperature.',
+    },
+    college: [
+      'Classification by discriminant B²−4AC: <0 elliptic, =0 parabolic, >0 hyperbolic.',
+      'Fourier series (sine/cosine) for boundary-value problems.',
+      'Boundary conditions: Dirichlet (value), Neumann (flux/derivative), Robin (mixed).',
+      'Eigenfunction expansion (sturm–liouville) for general initial conditions.',
+    ],
+    advanced: [
+      'Green’s functions for PDEs (impulse response).',
+      'Maximum principle (elliptic) and energy methods (existence/uniqueness).',
+    ],
+    gate: {
+      highYield: [
+        'Heat/wave/Laplace: type + separation setup.',
+        'Classification discriminant B²−4AC.',
+        'BC types (Dirichlet/Neumann/Robin).',
+        'Fourier series for BVPs.',
+      ],
+      traps: [
+        'Heat equation is PARABOLIC (diffusion, one-time direction); wave is HYPERBOLIC (two-time) — a classification trap.',
+        'Laplace equation has NO initial condition (steady) — only boundary conditions — an applicability question.',
+      ],
+    },
+    examples: [
+      'Heat in a rod: u_t = α²u_xx, u(0,t)=u(L,t)=0 → sine series solution.',
+      'Plucked string: wave equation with triangular initial shape.'],
+    formulas: [
+      { name: 'Heat', expr: 'u_t = α² u_xx' },
+      { name: 'Wave', expr: 'u_tt = c² u_xx' },
+      { name: 'Classification', expr: 'B² − 4AC (sign → type)' },
+    ],
+    keyPoints: [
+      'Heat (para) / wave (hyper) / Laplace (ellip).',
+      'Separation of variables + Fourier series.',
+      'BC: Dirichlet/Neumann/Robin.',
+      'Laplace = steady (no IC).',
+    ],
+    revision: {
+      remember: 'Heat-para, wave-hyper, Laplace-ellip; separation + Fourier.',
+      mistakes: ['Giving IC to Laplace.'],
+      summary: 'Canonical PDEs + classification + separation + BC types.',
+    },
+    related: ['emt-ode', 'trp-heat'],
+  },
+  {
+    id: 'emt-prob',
+    subject: 'engineering-mathematics',
+    name: 'Probability & Statistics',
+    level: 1,
+    priority: 'high',
+    ord: 5,
+    short: 'Distributions, expectation and inference.',
+    basic: {
+      what: 'Probability quantifies uncertainty. Discrete (binomial, Poisson) and continuous (normal, exponential) distributions; expectation and variance summarise them. Statistics infers population parameters from samples.',
+      why: 'GATE asks distribution properties, expectation, and basic inference (confidence intervals, hypothesis tests).',
+      how: 'Expectation E[X] (mean); Var = E[X²] − (E[X])². Binomial(n,p): mean np, var np(1−p). Poisson(λ): mean=var=λ. Normal(μ,σ²): 68-95-99.7 rule. Central limit theorem: sample mean → Normal for large n.',
+      where: 'Quality control, experimental design, bio-statistics.',
+    },
+    college: [
+      'Conditioning and Bayes’ theorem: P(A|B) = P(B|A)P(A)/P(B).',
+      'Covariance and correlation (r = cov/(σxσy), |r| ≤ 1).',
+      'Estimation: MLE (maximise likelihood); unbiased estimators.',
+      'Hypothesis testing: null/alternative, Type I (α) vs Type II (β) error, p-value.',
+      'Confidence interval: x̄ ± z·(σ/√n) (known σ) or t (unknown σ, small n).',
+      'Chi-square (goodness of fit), t-test (mean), F-test (variance/model fit).',
+    ],
+    advanced: [
+      'Regression: OLS (minimise squared residuals); R²; standard error.',
+      'ANOVA: between/within group variance (F = MS_between/MS_within).',
+    ],
+    gate: {
+      highYield: [
+        'Distribution means/variances (binomial np, npq; Poisson λ, λ; normal μ, σ²).',
+        'Bayes’ theorem (forward/reverse).',
+        'CLT: sample mean → Normal.',
+        'Type I vs Type II errors; p-value logic.',
+        'CI: x̄ ± zσ/√n (z known σ; t unknown).',
+        'Correlation bounds (−1 ≤ r ≤ 1).',
+      ],
+      traps: [
+        'Poisson mean = variance = λ (the signature) — a distribution-identification question.',
+        'Type I = rejecting a TRUE null (α); Type II = failing to reject a FALSE null (β) — a swap trap.',
+        'Larger n → NARROWER confidence interval (σ/√n shrinks) — a direction question.',
+      ],
+    },
+    examples: [
+      'Mutation rate λ=0.001 per site: P(0 mutations in 1000 sites) = e^(−1) ≈ 0.368 (Poisson).',
+      'Batch assay: mean 50, σ 5, n=25 → 95% CI = 50 ± 1.96×1 = 48–52.'],
+    formulas: [
+      { name: 'Variance', expr: 'Var = E[X²] − (E[X])²' },
+      { name: 'Bayes', expr: 'P(A|B) = P(B|A)P(A)/P(B)' },
+      { name: 'CI (known σ)', expr: 'x̄ ± z·σ/√n' },
+    ],
+    keyPoints: [
+      'Binomial np/npq; Poisson λ/λ; Normal 68-95-99.7.',
+      'Bayes forward/reverse.',
+      'Type I (α) = false positive; Type II (β) = false negative.',
+      'CI width ∝ 1/√n.',
+    ],
+    revision: {
+      remember: 'Poisson λ=λ; Bayes; α/β; CI ∝ 1/√n; r ∈ [−1,1].',
+      mistakes: ['Type I/II swap.'],
+      summary: 'Distributions + Bayes + CLT + inference (errors, p, CI, tests).',
+    },
+    related: ['emt-numerical', 'num-hardy-weinberg'],
+  },
+  {
+    id: 'emt-numerical',
+    subject: 'engineering-mathematics',
+    name: 'Numerical Methods',
+    level: 2,
+    priority: 'high',
+    ord: 6,
+    short: 'Solving equations and integrals by computation.',
+    basic: {
+      what: 'Numerical methods approximate solutions: root finding (Newton–Raphson, bisection), interpolation, numerical integration (trapezoidal, Simpson), and solving linear systems.',
+      why: 'GATE asks convergence rates and 1-step calculations (Newton, trapezoidal, Simpson).',
+      how: 'Newton: x_{n+1} = x_n − f/f′ (quadratic convergence near root). Bisection: halve interval (linear, robust). Trapezoidal: (h/2)[f0+2f1+...+fn]. Simpson (1/3): (h/3)[f0+4f1+2f2+...+fn] (needs even intervals).',
+      where: 'Simulation, engineering design, data fitting.',
+    },
+    college: [
+      'Newton: fast (2nd order) but needs f′ and good start; can diverge.',
+      'Bisection: guaranteed (bracketing), 1st order (slower).',
+      'Secant method: no derivative, superlinear (order ~1.618).',
+      'Integration error: trapezoidal O(h²) (global O(h²)); Simpson O(h⁴) (global).',
+      'Gauss–Seidel vs Jacobi iteration (convergence for diagonally dominant A).',
+      'Eigenvalues: power method (dominant), QR algorithm.',
+    ],
+    advanced: [
+      'Finite difference/element basics for PDEs.',
+      'Stability of ODE solvers (explicit Euler stability region; A-stable Runge–Kutta).',
+    ],
+    gate: {
+      highYield: [
+        'Newton step formula + convergence order (2).',
+        'Trapezoidal vs Simpson weights and orders.',
+        'Bisection (robust, 1st order) vs Newton (fast, 2nd).',
+        'Power method → dominant eigenvalue.',
+        'Gauss–Seidel needs diagonal dominance (convergence).',
+      ],
+      traps: [
+        'Simpson (1/3) needs an EVEN number of intervals (odd number of points) — an applicability trap.',
+        'Newton needs a DERIVATIVE (secant does not) — a "which method" question.',
+        'Trapezoidal global error O(h²); Simpson global O(h⁴) — an order trap.',
+      ],
+    },
+    examples: [
+      'Newton on f=x²−2 from x0=1: x1 = 1 − (−1)/2 = 1.5 → x2 ≈ 1.4167 → √2.',
+      'Simpson on ∫0^2 x² dx, h=1: (1/3)[0+4(1)+4] = 2.667 (true = 2.667).'],
+    formulas: [
+      { name: 'Newton', expr: 'x_{n+1} = x_n − f(x_n)/f′(x_n)' },
+      { name: 'Simpson 1/3', expr: '(h/3)[f0 + 4f1 + 2f2 + ... + fn]' },
+      { name: 'Trapezoidal', expr: '(h/2)[f0 + 2f1 + ... + fn]' },
+    ],
+    keyPoints: [
+      'Newton = 2nd order, needs f′.',
+      'Bisection = robust, 1st order.',
+      'Simpson 1/3: 4-2-4 weights, even intervals.',
+      'Power method → dominant λ.',
+    ],
+    revision: {
+      remember: 'Newton 2nd; Simpson 4-2-4 even; power = dominant λ.',
+      mistakes: ['Simpson on odd intervals.'],
+      summary: 'Root finding + integration + iterative solvers with convergence orders.',
+    },
+    related: ['emt-ode', 'emt-linalg'],
+  },
+  {
+    id: 'emt-transforms',
+    subject: 'engineering-mathematics',
+    name: 'Complex Variables & Transforms',
+    level: 3,
+    priority: 'medium',
+    ord: 7,
+    short: 'Analytic functions, residues, and Fourier/Laplace.',
+    basic: {
+      what: 'Complex variables: analytic (differentiable) functions, Cauchy–Riemann, contour integration, residues. Transforms: Fourier (frequency decomposition) and Laplace (time → s-domain).',
+      why: 'Residue theorem and transform pairs are GATE favourites; they underpin control and signal processing.',
+      how: 'Cauchy–Riemann: u_x = v_y, u_y = −v_x. Residue theorem: ∮f dz = 2πi·Σ Res. Fourier: f(t) = Σ c_n e^(iωnt). Laplace pairs (see ODE).',
+      where: 'Control, signals, heat/diffusion, vibrations.',
+    },
+    college: [
+      'Poles and residues: simple pole at a → Res = lim (z−a)f(z).',
+      'Fourier series (periodic) vs Fourier transform (non-periodic).',
+      'Laplace: convolution theorem, partial fractions, inverse.',
+      'Z-transform (discrete time) for digital control.',
+      'Analytic continuation and singularities (poles, zeros, branch points).',
+    ],
+    advanced: [
+      'Contour deformation and Jordan’s lemma (evaluating real integrals).',
+      'Mellin transform and asymptotics.',
+    ],
+    gate: {
+      highYield: [
+        'Cauchy–Riemann equations.',
+        'Residue theorem (∮ = 2πi ΣRes); simple pole residue.',
+        'Fourier vs Laplace (when each is used).',
+        'Convolution theorem (Laplace: L{f*g} = F·G).',
+      ],
+      traps: [
+        'Residue theorem integrates over a CLOSED contour enclosing poles — an applicability question.',
+        'C–R: u_x = v_y AND u_y = −v_y... precisely u_y = −v_x (the sign and variable pairing is the trap).',
+        'Laplace is for CAUSAL (one-sided) signals; Fourier is two-sided — a domain trap.',
+      ],
+    },
+    examples: [
+      'Residue of 1/(z−2) at z=2 is 1 → ∮ 1/(z−2) dz (around circle) = 2πi.',
+      'Laplace of e^(at) is 1/(s−a); convolution → product.'],
+    formulas: [
+      { name: 'Cauchy–Riemann', expr: 'u_x = v_y; u_y = −v_x' },
+      { name: 'Residue theorem', expr: '∮f dz = 2πi ΣRes(f)' },
+    ],
+    keyPoints: [
+      'C–R: u_x=v_y, u_y=−v_x.',
+      '∮ = 2πi ΣRes (closed, poles inside).',
+      'Fourier (freq) vs Laplace (causal/s).',
+      'Convolution ↔ product (Laplace).',
+    ],
+    revision: {
+      remember: 'C–R signs; 2πiΣRes; Fourier freq, Laplace causal.',
+      mistakes: ['C–R sign/variable swap.'],
+      summary: 'Complex analysis (C–R, residues) + Fourier/Laplace/Z transforms.',
+    },
+    related: ['emt-ode', 'trp-control'],
+  },
+  {
+    id: 'emt-gate',
+    subject: 'engineering-mathematics',
+    name: 'GATE Focus: Engineering Math',
+    level: 4,
+    priority: 'high',
+    ord: 8,
+    short: 'The 13-mark math section, pattern by pattern.',
+    basic: {
+      what: 'GATE Engineering Math is ~13 marks across linear algebra, calculus, ODE/PDE, probability, numerics and transforms. It is the most "safe" 13 marks — formula and pattern driven.',
+      why: 'Highst ROI: 2–3 hours of pattern practice can secure most of the 13.',
+      how: 'Pattern bank: eigenvalue identities, vector theorem application, ODE root forms, distribution moments, Newton/Simpson steps, residue evaluation, Bayes computation.',
+      where: 'GATE BT paper (Section A).',
+    },
+    college: [
+      'Eigen: tr=Σλ, det=Πλ, symmetric→orthogonal.',
+      'Vector: ∮conservative=0; divergence (closed surface); Stokes (boundary).',
+      'ODE: characteristic roots → forms; Laplace pairs; FVT (stable).',
+      'Prob: moments; Bayes; α/β; CI ∝1/√n.',
+      'Numerics: Newton 2nd; Simpson even; bisection robust.',
+      'Transforms: C–R; residue 2πiΣRes.',
+    ],
+    advanced: [
+      'Multi-part: combine (e.g. eigen + stability + Laplace for a control question).',
+      'Numerical 2-step: Newton then verify (or Simpson integration).',
+    ],
+    gate: {
+      highYield: [
+        'All six pattern banks.',
+        'Identity/theorem recognition under time pressure.',
+      ],
+      traps: [
+        'Sign conventions (C–R, FVT stability, Type I/II).',
+        'Applicability (Simpson intervals, divergence closed surface, FVT stable).',
+      ],
+    },
+    examples: [
+      '"tr=5, det=6, 2×2 → eigenvalues?" → λ²−5λ+6=0 → 2,3.',
+      '"∮ 1/(z−2)² dz around |z−2|=1?" → Res of (z−2)^−2 at z=2 = 0 → 0.'],
+    formulas: [],
+    keyPoints: [
+      'Eigen identities + vector theorems + ODE forms.',
+      'Prob moments + Bayes + error types.',
+      'Numerics orders + transform rules.',
+      'Watch sign and applicability traps.',
+    ],
+    revision: {
+      remember: 'Six banks; signs; applicability.',
+      mistakes: ['Sign/applicability slips.'],
+      summary: 'Eng math GATE = six pattern banks drilled to reflex speed.',
+    },
+    related: ['emt-linalg', 'emt-calculus', 'emt-prob', 'emt-numerical'],
+  },
+];
+
+// ============ GENERAL APTITUDE ============
+export const TOPICS_APT: Topic[] = [
+  {
+    id: 'apt-verbal',
+    subject: 'general-aptitude',
+    name: 'Verbal Ability',
+    level: 1,
+    priority: 'high',
+    ord: 1,
+    short: 'Vocabulary, grammar and reading comprehension.',
+    basic: {
+      what: 'Verbal ability tests vocabulary (synonyms, antonyms, context), grammar (error spotting, fillers), and reading comprehension (main idea, inference, tone).',
+      why: 'Worth ~4–5 marks; the most "studyable" part of aptitude.',
+      how: 'Synonyms/antonyms: learn roots and families. Grammar: master the 10 common error types (subject-verb agreement, tense, prepositions). Reading: read the question first, then locate, then infer (don’t assume).',
+      where: 'GATE Section A.',
+    },
+    college: [
+      'Vocabulary strategies: word families, etymology (Latin/Greek roots), collocations.',
+      'Grammar: agreement, tense consistency, parallelism, modifiers, pronoun reference.',
+      'Comprehension: eliminate wrong options by tone/detail mismatch; inference must be SUPPORTED, not assumed.',
+      'Critical reasoning: assumption, strengthening/weakening, analogy.',
+    ],
+    advanced: [
+      'Sentence correction and improvement (formal register).',
+      'Cloze test (context-based fillers).',
+    ],
+    gate: {
+      highYield: [
+        'Synonym/antonym in context (not isolated).',
+        'Grammar error spotting (agreement, tense, preposition).',
+        'Reading: main idea + inference (supported).',
+        'Critical reasoning: assumption/strengthen/weaken.',
+      ],
+      traps: [
+        'Inference must be DIRECTLY supported (not "probably true") — an over-inference trap.',
+        'The "odd one out" vocabulary question often hinges on a subtle semantic field, not just meaning.',
+      ],
+    },
+    examples: [
+      'Synonym of "ubiquitous" → pervasive/omnipresent.',
+      'Error: "The committee have decided" → "has" (collective singular).'],
+    formulas: [],
+    keyPoints: [
+      'Vocab in context; grammar = 10 error types.',
+      'Comprehension: question first, locate, supported inference.',
+      'Critical reasoning: assumption/strengthen/weaken.',
+    ],
+    revision: {
+      remember: 'Context vocab + 10 grammar errors + supported inference.',
+      mistakes: ['Over-inferring beyond the passage.'],
+      summary: 'Verbal = vocab families + grammar errors + comprehension discipline.',
+    },
+    related: ['apt-quant', 'apt-logical'],
+  },
+  {
+    id: 'apt-quant',
+    subject: 'general-aptitude',
+    name: 'Quantitative Aptitude',
+    level: 1,
+    priority: 'high',
+    ord: 2,
+    short: 'Arithmetic, algebra, data and the quick tricks.',
+    basic: {
+      what: 'Quantitative aptitude: arithmetic (percentages, ratio, time-work, interest), algebra, data interpretation (tables/charts), and basic geometry. GATE emphasises speed and approximation.',
+      why: 'Worth ~5–6 marks; speed is the differentiator (time pressure).',
+      how: 'Percentages: convert to fractions (50%=1/2, 25%=1/4, 12.5%=1/8). Time-work: work = rate × time; combined rate adds. Interest: simple (P·r·t/100) vs compound (P(1+r/100)^t). Ratio: unitary method.',
+      where: 'GATE Section A.',
+    },
+    college: [
+      'Time-speed-distance: relative speed (same direction = difference, opposite = sum); average speed = 2xy/(x+y) for equal distances.',
+      'Profit-loss: chain of percentages (successive = not additive; use multipliers).',
+      'Permutation-combination: nCr, nPr; inclusion-exclusion.',
+      'Data interpretation: read the chart, compute ratios/percentages, watch units.',
+      'Number series and coding-decoding patterns.',
+    ],
+    advanced: [
+      'Approximation strategies (rounding, order of magnitude) for time saving.',
+      'Probability word problems (complement method).',
+    ],
+    gate: {
+      highYield: [
+        'Percentage ↔ fraction table (50, 25, 12.5, 75, 33.3, 6.25).',
+        'Time-work combined rates.',
+        'Average speed (equal distances) = harmonic mean 2xy/(x+y).',
+        'Successive percentage (multipliers, not sum).',
+        'Relative speed (sum/difference).',
+      ],
+      traps: [
+        'Average speed over EQUAL DISTANCES is the HARMONIC mean (not arithmetic) — a classic trap.',
+        'Successive 10% up then 10% down ≠ net 0 (it is −1%) — a multiplier trap.',
+        'Time-work: rates ADD, times do not.',
+      ],
+    },
+    examples: [
+      'Train A 60 km/h, B 90 km/h, same distance each way → average = 2·60·90/150 = 72 km/h.',
+      '10% then 10%: 1.1×0.9 = 0.99 → net −1%.'],
+    formulas: [
+      { name: 'Avg speed (equal dist)', expr: 'v = 2xy/(x+y)' },
+      { name: 'Compound', expr: 'A = P(1 + r/100)^t' },
+    ],
+    keyPoints: [
+      '% ↔ fraction table.',
+      'Avg speed (equal dist) = harmonic.',
+      'Successive % = multipliers.',
+      'Relative speed = sum/diff.',
+    ],
+    revision: {
+      remember: 'Harmonic avg speed; multipliers for successive %; relative speed.',
+      mistakes: ['Arithmetic avg for equal distances.'],
+      summary: 'Quant = fraction table + harmonic avg + multipliers + relative speed + DI.',
+    },
+    related: ['apt-verbal', 'apt-logical', 'emt-prob'],
+  },
+  {
+    id: 'apt-logical',
+    subject: 'general-aptitude',
+    name: 'Logical & Analytical Reasoning',
+    level: 2,
+    priority: 'high',
+    ord: 3,
+    short: 'Syllogisms, sequences, puzzles and data sufficiency.',
+    basic: {
+      what: 'Logical reasoning tests deduction (syllogisms), pattern recognition (number/figure series), puzzles (seating, scheduling), and data sufficiency.',
+      why: 'Worth ~3–4 marks; pattern and elimination skills pay off.',
+      how: 'Syllogism: use Venn diagrams; "all A are B, some B are C" → no definite A–C relation. Series: look for differences, ratios, primes, squares. Data sufficiency: check EACH statement independently first.',
+      where: 'GATE Section A.',
+    },
+    college: [
+      'Syllogism: universal/particular, affirmative/negative; watch "some" (at least one) and "no".',
+      'Blood relation and direction (distance = Pythagoras for perpendicular moves).',
+      'Coding-decoding: position shifts, reverse, alphabetical.',
+      'Statement-conclusion: conclusion must follow NECESSARILY (not just likely).',
+      'Game theory basics (maximin, minimax) — occasional.',
+    ],
+    advanced: [
+      'Conditional logic: contrapositive equivalence (P→Q ≡ ¬Q→¬P); fallacies.',
+      'Constraint satisfaction (scheduling with multiple rules).',
+    ],
+    gate: {
+      highYield: [
+        'Syllogism (Venn; "some" = ≥1).',
+        'Contrapositive (P→Q ≡ ¬Q→¬P).',
+        'Data sufficiency (independent check first).',
+        'Direction/distance (Pythagoras).',
+        'Series patterns (diff, ratio, primes, squares).',
+      ],
+      traps: [
+        'Converse of P→Q is NOT valid (Q→P is a fallacy); contrapositive IS valid — a logic trap.',
+        'Data sufficiency: "together sufficient" but each alone not → option C (together) — a common pattern.',
+        'In syllogisms, "some A are B" does NOT imply "some B are A is all" — direction of "some".',
+      ],
+    },
+    examples: [
+      'Contrapositive: "If it rains, the ground is wet" ≡ "If ground not wet, it did not rain".',
+      'Direction: 3 km N, 4 km E → distance from start = √(9+16) = 5 km.'],
+    formulas: [
+      { name: 'Contrapositive', expr: 'P→Q ≡ ¬Q→¬P' },
+    ],
+    keyPoints: [
+      'Syllogism via Venn; "some" = ≥1.',
+      'Contrapositive valid; converse not.',
+      'Data sufficiency: independent first.',
+      'Direction = Pythagoras.',
+    ],
+    revision: {
+      remember: 'Contrapositive OK, converse no; "some"≥1; Pythagoras for turns.',
+      mistakes: ['Assuming converse validity.'],
+      summary: 'Logical = syllogisms + contrapositive + series + direction + sufficiency.',
+    },
+    related: ['apt-verbal', 'apt-quant'],
+  },
+  {
+    id: 'apt-spatial',
+    subject: 'general-aptitude',
+    name: 'Spatial & Figure Reasoning',
+    level: 2,
+    priority: 'medium',
+    ord: 4,
+    short: 'Mental rotation, folding, and figure series.',
+    basic: {
+      what: 'Spatial reasoning tests mental rotation, figure completion, paper folding, and 3D from 2D views.',
+      why: 'Worth ~1–2 marks; visualisation practice helps.',
+      how: 'Mental rotation: rotate in 90° steps, track one feature. Paper folding: track the crease line. Figure series: count elements (sides, dots, lines), track what changes each step.',
+      where: 'GATE Section A.',
+    },
+    college: [
+      '3D cube: opposite faces (from two views), net folding (which square is opposite).',
+      'Matrix reasoning: 2×3 figure matrix (row/column rule).',
+      'Embedded figures: find the hidden shape.',
+      'Dot situation: Venn with shading rules.',
+    ],
+    advanced: [
+      'Isometric projection (engineering drawing basics).',
+      '3D rotation of complex objects (track multiple features).',
+    ],
+    gate: {
+      highYield: [
+        'Mental rotation (90° steps, track a feature).',
+        'Cube nets (opposite faces).',
+        'Figure series (count + change rule).',
+        'Dot/Venn situation rules.',
+      ],
+      traps: [
+        'Mental rotation: the image is NOT mirrored (pure rotation) — a reflection trap.',
+        'Cube: from one view you see 3 faces; the 3 hidden are the opposites — a "which is opposite" question.',
+      ],
+    },
+    examples: [
+      'Cube net: two squares separated by one in a straight line are opposite.',
+      'Figure series: +1 side each step (triangle→square→pentagon) → next hexagon.'],
+    formulas: [],
+    keyPoints: [
+      'Rotation = pure rotation (no mirror).',
+      'Cube: separated-by-one = opposite.',
+      'Series: count elements + change rule.',
+      'Dot/Venn: shading rules.',
+    ],
+    revision: {
+      remember: 'Rotate don’t mirror; cube opposite; count the series.',
+      mistakes: ['Mirroring in mental rotation.'],
+      summary: 'Spatial = rotation + cube nets + figure series + dot situation.',
+    },
+    related: ['apt-logical', 'apt-verbal'],
+  },
+  {
+    id: 'apt-di',
+    subject: 'general-aptitude',
+    name: 'Data Interpretation',
+    level: 2,
+    priority: 'high',
+    ord: 5,
+    short: 'Tables, bar/line/pie charts and quick computation.',
+    basic: {
+      what: 'Data interpretation presents tables and charts; you compute percentages, ratios, growth, and averages under time pressure.',
+      why: 'Worth ~2–3 marks; speed + approximation are key.',
+      how: 'Read the chart type (bar/line/pie/table). Pie: % = angle/360. Compute with approximation (round to friendly numbers), then check the answer options for a clear gap.',
+      where: 'GATE Section A.',
+    },
+    college: [
+      'Percentage change: (new−old)/old × 100.',
+      'Growth rate and CAGR: (end/start)^(1/n) − 1.',
+      'Ratio and proportion (cross-multiply).',
+      'Weighted average (alligation for mixtures).',
+      'Compare across charts (join two data sources).',
+    ],
+    advanced: [
+      'Multi-step DI (combine chart + formula).',
+      'Approximation hierarchies (±5% acceptable to pick the option).',
+    ],
+    gate: {
+      highYield: [
+        'Pie: % = angle/360.',
+        '% change formula.',
+        'CAGR = (end/start)^(1/n) − 1.',
+        'Alligation (weighted average).',
+        'Cross-chart comparison.',
+      ],
+      traps: [
+        '% change is relative to the BASE (old) value, not the new — a base trap.',
+        'Pie angle: 90° = 25%, 180° = 50% (know these instantly) — a speed anchor.',
+        'CAGR uses the GEOMETRIC mean (not arithmetic) — a mean-type trap.',
+      ],
+    },
+    examples: [
+      'Sales 200 → 260: % change = 60/200 = 30%.',
+      'Pie: 120° sector of 900 total = (120/360)×900 = 300.'],
+    formulas: [
+      { name: '% change', expr: '(new − old)/old × 100' },
+      { name: 'CAGR', expr: '(end/start)^(1/n) − 1' },
+    ],
+    keyPoints: [
+      'Pie % = angle/360 (90°=25%).',
+      '% change base = old.',
+      'CAGR = geometric.',
+      'Alligation for mixtures.',
+    ],
+    revision: {
+      remember: 'Angle/360; base=old; CAGR geometric.',
+      mistakes: ['% change base; arithmetic CAGR.'],
+      summary: 'DI = chart reading + %/ratio/growth + approximation speed.',
+    },
+    related: ['apt-quant', 'apt-verbal'],
+  },
+  {
+    id: 'apt-reading',
+    subject: 'general-aptitude',
+    name: 'Reading Comprehension & Critical Reasoning',
+    level: 3,
+    priority: 'medium',
+    ord: 6,
+    short: 'Passage mastery and argument analysis.',
+    basic: {
+      what: 'RC passages ask main idea, tone, inference, and vocabulary-in-context. Critical reasoning analyses arguments: assumption, strengthener, weakener, conclusion.',
+      why: 'Worth ~2–3 marks; the most "skill-based" aptitude area.',
+      how: 'RC: read question → skim passage for the relevant line → eliminate options that are too broad/narrow or not stated. CR: identify conclusion + premises; the assumption is what MUST be true for the conclusion to hold.',
+      where: 'GATE Section A.',
+    },
+    college: [
+      'Tone detection: objective, critical, optimistic, skeptical (word choice).',
+      'Inference vs fact: inference = implied but not stated (must follow).',
+      'Assumption: the unstated bridge between premise and conclusion.',
+      'Strengthen/Weaken: which option most affects the conclusion’s validity.',
+      'Analogy: A is to B as C is to ? (relation, not similarity).',
+    ],
+    advanced: [
+      'Flaw identification (hasty generalisation, false cause, slippery slope).',
+      'Parallel reasoning (same structure, different content).',
+    ],
+    gate: {
+      highYield: [
+        'Main idea (whole passage) vs detail (one part).',
+        'Inference (implied, must follow) vs assumption (unstated bridge).',
+        'Strengthen/weaken (impact on conclusion).',
+        'Tone (word-choice based).',
+        'Analogy (relation).',
+      ],
+      traps: [
+        'The assumption is NOT stated in the passage (it is the gap) — a "where is it" trap.',
+        'A strong inference is the one that CANNOT be false given the passage (not just "likely") — a strength trap.',
+      ],
+    },
+    examples: [
+      'Assumption: "Sales rose because of the ad campaign" assumes no other cause (price, season) drove it.',
+      'Tone: "The results, while promising, remain unreplicated" → cautious/skeptical.'],
+    formulas: [],
+    keyPoints: [
+      'Main idea = whole; detail = part.',
+      'Inference = implied, must follow; assumption = unstated bridge.',
+      'Strengthen/weaken = conclusion impact.',
+      'Tone = word choice.',
+    ],
+    revision: {
+      remember: 'Main vs detail; inference vs assumption; tone words.',
+      mistakes: ['Treating assumption as stated.'],
+      summary: 'RC + CR: passage discipline + argument anatomy (conclusion/premise/assumption).',
+    },
+    related: ['apt-verbal', 'apt-logical'],
+  },
+  {
+    id: 'apt-gate',
+    subject: 'general-aptitude',
+    name: 'GATE Focus: Aptitude Strategy',
+    level: 4,
+    priority: 'high',
+    ord: 7,
+    short: 'How to secure the 15 marks efficiently.',
+    basic: {
+      what: 'General Aptitude is 15 marks (100% of Section A). It is the highest-ROI section: with 2–3 weeks of focused practice, most aspirants can secure 10–12.',
+      why: 'Every mark here is "free" relative to the effort for core-subject marks.',
+      how: 'Week 1: verbal vocab + grammar. Week 2: quant (%, ratio, time-work, DI). Week 3: logical + spatial + RC. Daily: 10 questions timed.',
+      where: 'GATE Section A.',
+    },
+    college: [
+      'Question distribution (typical): verbal 3–4, quant 3–4, logical 2–3, DI 2, RC 1–2.',
+      'Time budget: ~30 min for 10 questions (3 min each).',
+      'Strategy: solve quant + logical first (objective), then verbal + RC (longer).',
+      'Approximation: pick the option with the largest gap; don’t over-compute.',
+    ],
+    advanced: [
+      'Error log: track every wrong question by type (vocab/grammar/quant/logic/DI) and review weekly.',
+      'Mock discipline: take full aptitude sections under exam timing.',
+    ],
+    gate: {
+      highYield: [
+        'The quant anchors (harmonic avg speed, % base, CAGR, alligation).',
+        'The logical anchors (contrapositive, syllogism Venn, sufficiency).',
+        'The verbal anchors (vocab in context, 10 grammar errors, inference discipline).',
+        'DI speed (angle/360, % change base).',
+      ],
+      traps: [
+        'Time management (spending 5 min on one hard question) — the meta-trap.',
+        'Over-inferring in RC (picking "likely" over "must").',
+      ],
+    },
+    examples: [
+      '3-week plan: W1 verbal, W2 quant+DI, W3 logical+spatial+RC; 10 timed questions daily.',
+      'Error log by type → targeted review.'],
+    formulas: [],
+    keyPoints: [
+      '15 marks, highest ROI.',
+      'Quant + logical first; verbal + RC after.',
+      '3 min/question budget.',
+      'Approximate to the option gap.',
+    ],
+    revision: {
+      remember: '3-week plan; 3 min/question; anchors by type.',
+      mistakes: ['Time mismanagement.'],
+      summary: 'Aptitude GATE = the 15-mark ROI section: 3-week plan + anchors + time discipline.',
+    },
+    related: ['apt-verbal', 'apt-quant', 'apt-logical', 'apt-di'],
+  },
+];
+
+export const ALL = [...TOPICS_EMT, ...TOPICS_APT];

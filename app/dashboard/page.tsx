@@ -8,7 +8,7 @@ import { SUBJECTS, subjectBySlug } from '@/lib/content/subjects';
 import { TOPICS, topicById, topicsForSubject } from '@/lib/content/topics';
 import type { Attempt, StudyPlan, User } from '@/lib/types';
 import {
-  Flame, Target, BookOpenCheck, Trophy, ArrowRight, Bot, PenLine, Timer, Archive, BookOpen, Sparkles, CalendarRange,
+  Flame, Target, BookOpenCheck, Trophy, ArrowRight, Bot, PenLine, Timer, Archive, BookOpen, Sparkles, CalendarRange, FileText,
 } from 'lucide-react';
 
 interface AnalyticsLite {
@@ -199,6 +199,7 @@ export default function DashboardPage() {
                 { href: '/practice', label: 'Practice', icon: <PenLine className="h-4 w-4" />, cls: 'bg-brand-50 text-brand-600 hover:bg-brand-100' },
                 { href: '/mock', label: 'Mock Test', icon: <Timer className="h-4 w-4" />, cls: 'bg-amber-50 text-amber-600 hover:bg-amber-100' },
                 { href: '/pyqs', label: 'PYQ Bank', icon: <Archive className="h-4 w-4" />, cls: 'bg-sky-50 text-sky-600 hover:bg-sky-100' },
+                { href: '/papers', label: 'Old Papers', icon: <FileText className="h-4 w-4" />, cls: 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' },
                 { href: '/revision', label: 'Revise', icon: <BookOpen className="h-4 w-4" />, cls: 'bg-violet-50 text-violet-600 hover:bg-violet-100' },
                 { href: '/numericals', label: 'Numericals', icon: <Sparkles className="h-4 w-4" />, cls: 'bg-rose-50 text-rose-600 hover:bg-rose-100' },
               ].map((a) => (

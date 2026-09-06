@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { clsx } from 'clsx';
 import {
-  LayoutDashboard, Dna, Bot, PenLine, Archive, Timer, Calculator, BookOpen,
+  LayoutDashboard, Dna, Bot, PenLine, Archive, Timer, Calculator, BookOpen, FileText,
   BarChart3, AlertTriangle, CalendarRange, TrendingUp, Settings, LogOut,
   Menu, X, Flame,
 } from 'lucide-react';
@@ -30,6 +30,7 @@ const NAV = [
   { href: '/tutor', label: 'AI Tutor', icon: Bot, group: 'Learn' },
   { href: '/practice', label: 'Question Practice', icon: PenLine, group: 'Practice' },
   { href: '/pyqs', label: 'PYQ Bank', icon: Archive, group: 'Practice' },
+  { href: '/papers', label: 'Old Question Papers', icon: FileText, group: 'Practice' },
   { href: '/mock', label: 'Mock Tests', icon: Timer, group: 'Practice' },
   { href: '/numericals', label: 'Numericals', icon: Calculator, group: 'Practice' },
   { href: '/revision', label: 'Revision Center', icon: BookOpen, group: 'Revise' },

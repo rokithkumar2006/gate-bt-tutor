@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
+import Link from 'next/link';
 import QuestionCard from '@/components/QuestionCard';
 import { Badge, Card, EmptyState, SectionTitle } from '@/components/ui';
 import { filterPyqs, PYQS } from '@/lib/content/pyqs';
 import { SUBJECTS, subjectBySlug } from '@/lib/content/subjects';
 import { topicById, topicsForSubject } from '@/lib/content/topics';
-import { ShieldCheck, Sparkles } from 'lucide-react';
+import { FileText, ShieldCheck, Sparkles } from 'lucide-react';
 
 export default function PyqsPage() {
   const [subject, setSubject] = useState('');
@@ -47,9 +48,14 @@ export default function PyqsPage() {
             <span className="inline-flex items-center gap-1 font-semibold text-indigo-600"><Sparkles className="h-3.5 w-3.5" /> PYQ-Style</span> is original practice in the same format — never presented as a real PYQ.
           </p>
         </div>
-        <Badge tone="slate">
-          {list.length} questions · {verifiedCount} verified · {list.length - verifiedCount} PYQ-style
-        </Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge tone="slate">
+            {list.length} questions · {verifiedCount} verified · {list.length - verifiedCount} PYQ-style
+          </Badge>
+          <Link href="/papers" className="btn-secondary">
+            <FileText className="h-4 w-4" /> Full official papers
+          </Link>
+        </div>
       </div>
 
       {/* Filters */}

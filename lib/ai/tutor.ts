@@ -476,61 +476,229 @@ export function tutorReply(input: string, ctx: TutorContext): TutorReply {
 }
 
 // ---------------------------------------------------------------------------
-// Pluggable LLM layer (env-configured, no network by default)
+// Pluggable LLM layer
 // ---------------------------------------------------------------------------
+//
+// Configure with server-side env vars (put them in .env.local — never commit):
+//   GATE_BT_LLM_API_KEY  — secret (required to enable the LLM)
+//   GATE_BT_LLM_BASE_URL — e.g. https://api.blackbox.ai  (default: OpenAI)
+//   GATE_BT_LLM_MODEL    — e.g. blackboxai/openai/gpt-4o-mini
+//
+// Any OpenAI-compatible /chat/completions endpoint works. If the key is
+// missing, the call fails, or the provider is slow, we always fall back to the
+// deterministic syllabus engine so the tutor never goes down.
 
-/**
- * Returns a backend descriptor if the user has configured an LLM key in the
- * server environment, otherwise null (deterministic engine only).
- *   GATE_BT_LLM_BASE_URL — e.g. https://api.openai.com/v1
- *   GATE_BT_LLM_API_KEY  — secret
- *   GATE_BT_LLM_MODEL    — e.g. gpt-4o-mini
- */
-export function llmAvailable(): { baseUrl: string; model: string } | null {
-  const key = process.env.GATE_BT_LLM_API_KEY;
-  if (!key) return null;
-  return {
-    baseUrl: process.env.GATE_BT_LLM_BASE_URL ?? 'https://api.openai.com/v1',
-    model: process.env.GATE_BT_LLM_MODEL ?? 'gpt-4o-mini',
-  };
+export interface LlmConfig {
+  baseUrl: string;
+  model: string;
+  apiKey: string;
+}
+
+/** Strip a trailing slash and a trailing /v1 so we can build URLs predictably. */
+function normalizeBase(raw: string): string {
+  return raw.trim().replace(/\/+$/, '');
 }
 
 /**
- * Optional LLM override. When an env key is present this is called instead of
- * the deterministic engine; on any error we fall back to the deterministic
- * answer so the tutor never goes down.
+ * Build the chat-completions URL. Providers differ: OpenAI needs /v1, while
+ * Blackbox's public host serves /chat/completions at the root. We honour an
+ * explicit /v1 in the configured base URL and otherwise probe sensibly.
+ */
+export function chatCompletionsUrl(baseUrl: string): string {
+  const base = normalizeBase(baseUrl);
+  if (/\/chat\/completions$/.test(base)) return base;
+  if (/\/v\d+$/.test(base)) return `${base}/chat/completions`;
+  if (/(^|\/\/)(api\.)?openai\.com/.test(base)) return `${base}/v1/chat/completions`;
+  return `${base}/chat/completions`;
+}
+
+/**
+ * Returns a backend descriptor if an LLM key is configured, otherwise null
+ * (deterministic engine only).
+ */
+export function llmAvailable(): LlmConfig | null {
+  const apiKey = process.env.GATE_BT_LLM_API_KEY?.trim();
+  if (!apiKey) return null;
+  return {
+    apiKey,
+    baseUrl: normalizeBase(process.env.GATE_BT_LLM_BASE_URL ?? 'https://api.openai.com/v1'),
+    model: process.env.GATE_BT_LLM_MODEL?.trim() || 'gpt-4o-mini',
+  };
+}
+
+/** Commands that must stay deterministic — they return interactive UI payloads
+ *  (question lists, numerical ids, nav routes) that free text cannot express. */
+function isStructuredCommand(input: string): boolean {
+  const g = matchGlobal(input);
+  if (g && g !== 'EXPLAIN AGAIN') return true;
+  const q = matchQuick(input);
+  return q === 'Give Me Questions' || q === 'Start Numericals';
+}
+
+/** Compact syllabus context so the model answers from OUR notes, not its memory. */
+function buildGrounding(ctx: TutorContext): string {
+  const t = currentTopic(ctx);
+  if (!t) return 'No topic selected yet. Encourage the student to pick a subject, e.g. "Start Molecular Biology".';
+  const lines: string[] = [
+    `TOPIC: ${t.name} (subject: ${subjectName(t.subject)}, level ${t.level}, priority ${t.priority})`,
+    `WHAT: ${t.basic.what}`,
+    `WHY: ${t.basic.why}`,
+  ];
+  if (t.college.length) lines.push(`COLLEGE DEPTH:\n${bullets(t.college.slice(0, 6))}`);
+  if (t.advanced.length) lines.push(`ADVANCED:\n${bullets(t.advanced.slice(0, 4))}`);
+  if (t.gate.highYield.length) lines.push(`GATE HIGH-YIELD:\n${bullets(t.gate.highYield.slice(0, 6))}`);
+  if (t.gate.traps.length) lines.push(`COMMON TRAPS:\n${bullets(t.gate.traps.slice(0, 5))}`);
+  if (t.formulas.length) lines.push(`FORMULAS:\n${bullets(t.formulas.map((f) => `${f.name}: ${f.expr}`))}`);
+  return lines.join('\n\n');
+}
+
+function buildSystemPrompt(ctx: TutorContext): string {
+  const weak = (ctx.weakAreas ?? [])
+    .slice(0, 3)
+    .map((w) => `${topicById.get(w.topic)?.name ?? w.topic} (${Math.round(w.accuracy * 100)}%)`)
+    .join(', ');
+  return [
+    'You are the GATE BT Personal Tutor — an expert Biotechnology teacher for a student preparing for GATE BT, college exams and other competitive exams.',
+    '',
+    'TEACHING RULES:',
+    '- Teach one topic at a time. Always build from basics, then move easy → difficult.',
+    '- Be exam-focused: say explicitly what GATE asks and which traps cost marks.',
+    '- Never overwhelm. Keep answers under 300 words unless the student asks for a full explanation.',
+    '- Use plain Markdown (bold, bullets). No tables, no LaTeX blocks — inline notation like Km, Vmax, 2^n is fine.',
+    '- Never invent a previous-year question or claim something appeared in a real GATE paper. If unsure, say so.',
+    '- Prefer the grounding notes below over your own memory. If they do not cover the question, answer from general biotechnology knowledge and say you are going beyond the notes.',
+    '',
+    'END EVERY ANSWER by suggesting one of the app commands that fits: Explain Again, Explain Like a Beginner, Give an Example, Give Me Questions, Show Important Formulas, Start Numericals, Quick Revision.',
+    '',
+    weak ? `The student is currently weakest in: ${weak}. Tie the explanation back to these when relevant.` : '',
+    '',
+    '--- GROUNDING NOTES (the app\'s own syllabus content) ---',
+    buildGrounding(ctx),
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
+interface ChatChoice {
+  message?: { content?: string };
+}
+interface ChatResponse {
+  choices?: ChatChoice[];
+  error?: { message?: string };
+}
+
+/** Last LLM error, exposed via /api/tutor/health for debugging. */
+let lastLlmError: string | null = null;
+export function getLastLlmError(): string | null {
+  return lastLlmError;
+}
+
+const LLM_TIMEOUT_MS = 30_000;
+
+/**
+ * Call the configured OpenAI-compatible chat endpoint.
+ * Throws on any non-success so the caller can fall back.
+ */
+export async function llmComplete(
+  cfg: LlmConfig,
+  messages: { role: string; content: string }[],
+  opts: { maxTokens?: number; temperature?: number } = {},
+): Promise<string> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), LLM_TIMEOUT_MS);
+  try {
+    const res = await fetch(chatCompletionsUrl(cfg.baseUrl), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${cfg.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: cfg.model,
+        messages,
+        max_tokens: opts.maxTokens ?? 800,
+        temperature: opts.temperature ?? 0.4,
+        stream: false,
+      }),
+      signal: controller.signal,
+    });
+
+    const raw = await res.text();
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${raw.slice(0, 300)}`);
+    }
+
+    let data: ChatResponse;
+    try {
+      data = JSON.parse(raw) as ChatResponse;
+    } catch {
+      throw new Error(`Non-JSON response: ${raw.slice(0, 200)}`);
+    }
+    if (data.error?.message) throw new Error(data.error.message.slice(0, 300));
+
+    const text = data.choices?.[0]?.message?.content?.trim();
+    if (!text) throw new Error('Empty completion returned by provider');
+    return text;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Lightweight connectivity probe used by /api/tutor/health. */
+export async function llmPing(): Promise<{ ok: boolean; model?: string; baseUrl?: string; error?: string }> {
+  const cfg = llmAvailable();
+  if (!cfg) return { ok: false, error: 'No GATE_BT_LLM_API_KEY configured — running on the deterministic engine.' };
+  try {
+    const text = await llmComplete(
+      cfg,
+      [{ role: 'user', content: 'Reply with the single word: ready' }],
+      { maxTokens: 8, temperature: 0 },
+    );
+    return { ok: true, model: cfg.model, baseUrl: cfg.baseUrl, error: undefined };
+  } catch (e) {
+    return { ok: false, model: cfg.model, baseUrl: cfg.baseUrl, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/**
+ * Main async entry point used by /api/tutor.
+ *
+ * Structured commands stay deterministic (they carry interactive payloads).
+ * Everything else goes to the LLM when configured, with a guaranteed fallback
+ * to the deterministic engine on any failure.
  */
 export async function respondAsync(input: string, ctx: TutorContext): Promise<TutorReply> {
+  const deterministic = tutorReply(input, ctx);
+
   const cfg = llmAvailable();
-  if (cfg) {
-    try {
-      const system = [
-        'You are the GATE BT Personal Tutor for a Biotechnology student preparing for GATE BT, college exams and competitive exams.',
-        'Rules: teach one topic at a time; always start from basics; move easy → difficult; distinguish actual PYQs from generated ones; never overwhelm the student.',
-        ctx.topic ? `Current topic: ${topicById.get(ctx.topic)?.name ?? ctx.topic} (${subjectName(ctx.subject)}).` : `Current subject: ${subjectName(ctx.subject) ?? 'none'}.`,
-        'Keep answers under 300 words unless asked for a full explanation. Use the exact commands the app supports: Explain Again, Explain Like a Beginner, Give an Example, Give Me Questions, Show Important Formulas, Start Numericals, Quick Revision.',
-      ].join('\n');
-      const res = await fetch(`${cfg.baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.GATE_BT_LLM_API_KEY}` },
-        body: JSON.stringify({
-          model: cfg.model,
-          messages: [
-            { role: 'system', content: system },
-            ...ctx.history.slice(-6).map((m) => ({ role: m.role, content: m.text })),
-            { role: 'user', content: input },
-          ],
-          max_tokens: 700,
-        }),
-      });
-      if (res.ok) {
-        const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-        const text = data.choices?.[0]?.message?.content;
-        if (text) return { text, kind: 'text', aiDraft: false };
-      }
-    } catch {
-      // fall through to deterministic engine
-    }
+  if (!cfg) return deterministic;
+
+  // Keep question lists / numericals / navigation deterministic so the UI
+  // still receives its interactive payload.
+  if (isStructuredCommand(input)) return deterministic;
+
+  try {
+    const history = ctx.history
+      .slice(-6)
+      .filter((m) => m.text?.trim())
+      .map((m) => ({ role: m.role === 'tutor' ? 'assistant' : 'user', content: m.text }));
+
+    const text = await llmComplete(cfg, [
+      { role: 'system', content: buildSystemPrompt(ctx) },
+      ...history,
+      { role: 'user', content: input },
+    ]);
+
+    lastLlmError = null;
+    return {
+      text,
+      kind: 'text',
+      topicId: deterministic.topicId,
+      aiDraft: false,
+    };
+  } catch (e) {
+    lastLlmError = e instanceof Error ? e.message : String(e);
+    console.error('[tutor] LLM call failed, using deterministic engine:', lastLlmError);
+    return deterministic;
   }
-  return tutorReply(input, ctx);
 }

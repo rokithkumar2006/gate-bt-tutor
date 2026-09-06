@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Badge, Card, SectionTitle, Spinner } from '@/components/ui';
 import { planStudy } from '@/lib/planner';
 import { MOCK_TESTS } from '@/lib/content/mockTests';
@@ -22,6 +23,8 @@ export default function PlannerPage() {
   const [saved, setSaved] = useState<StudyPlan | null>(null);
   const [preview, setPreview] = useState<StudyPlan | null>(null);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     fetch('/api/planner')
@@ -36,15 +39,23 @@ export default function PlannerPage() {
 
   const generate = async () => {
     setBusy(true);
+    setError(null);
     const res = await fetch('/api/planner', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ examDate, hoursPerDay: hours, startLevel: level }),
     }).catch(() => null);
+    if (res?.status === 401) {
+      router.replace('/login');
+      setBusy(false);
+      return;
+    }
     if (res?.ok) {
       const d = await res.json();
       setSaved(d.plan);
       setPreview(d.plan);
+    } else {
+      setError('Could not generate the plan. Please try again.');
     }
     setBusy(false);
   };
@@ -92,6 +103,11 @@ export default function PlannerPage() {
             </button>
           </div>
         </div>
+        {error && (
+          <div className="mt-3 rounded-xl bg-rose-50 px-3.5 py-2.5 text-sm font-medium text-rose-700 ring-1 ring-rose-200">
+            {error}
+          </div>
+        )}
       </Card>
 
       {!plan ? (

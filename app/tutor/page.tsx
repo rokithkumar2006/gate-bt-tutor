@@ -108,6 +108,22 @@ function TutorPageInner() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ input: text, subject: subject || undefined, topic: topic || undefined, history }),
       });
+      // Session expired / logged out — send the user to log in instead of
+      // printing a raw "Not authenticated" string into the chat.
+      if (res.status === 401) {
+        setMessages((m) => [
+          ...m,
+          {
+            id: crypto.randomUUID(),
+            role: 'tutor',
+            text: 'Your session has expired. Redirecting you to the login page — your chat will work again once you sign back in.',
+          },
+        ]);
+        setTimeout(() => router.replace('/login'), 1200);
+        setBusy(false);
+        return;
+      }
+
       const data = await res.json();
       if (res.ok && data.reply) {
         setSubject(data.context?.subject ?? nextSubject);

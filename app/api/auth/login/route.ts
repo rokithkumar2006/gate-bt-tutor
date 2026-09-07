@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { badRequest, createSession, findUserByEmail, readJson, setSessionCookie, verifyPassword } from '@/lib/store-helpers';
+import { badRequest, createSession, findUserByEmail, publicUser, readJson, setSessionCookie, verifyPassword } from '@/lib/store-helpers';
 
 export async function POST(req: Request) {
   const body = await readJson<{ email?: string; password?: string }>(req);
@@ -13,6 +13,6 @@ export async function POST(req: Request) {
   }
 
   const token = createSession(user.id);
-  const res = NextResponse.json({ user });
+  const res = NextResponse.json({ user: publicUser(user) });
   return setSessionCookie(res, token);
 }

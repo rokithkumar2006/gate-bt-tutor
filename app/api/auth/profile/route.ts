@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
-import { badRequest, currentUser, db, unauthorized } from '@/lib/store-helpers';
+import { badRequest, currentUser, store, unauthorized } from '@/lib/store-helpers';
 import type { UserProfile } from '@/lib/types';
 
 export async function PUT(req: Request) {
-  const user = currentUser();
+  const user = await currentUser();
   if (!user) return unauthorized();
 
   const body = await req
@@ -11,17 +11,21 @@ export async function PUT(req: Request) {
     .catch(() => null) as { name?: string; profile?: Partial<UserProfile> } | null;
   if (!body) return badRequest('Invalid JSON body');
 
-  const stored = db.users.find((u) => u.id === user.id);
+  const stored = await store.findUserById(user.id);
   if (!stored) return unauthorized();
 
+  let name = stored.name;
+  let profile = stored.profile;
+
   if (body.name !== undefined) {
-    const name = body.name.trim();
-    if (!name) return badRequest('Name cannot be empty');
-    stored.name = name;
+    const trimmed = body.name.trim();
+    if (!trimmed) return badRequest('Name cannot be empty');
+    name = trimmed;
   }
   if (body.profile) {
-    stored.profile = { ...stored.profile, ...body.profile };
+    profile = { ...stored.profile, ...body.profile };
   }
+  await store.updateUser(user.id, { name, profile });
 
-  return NextResponse.json({ user: { ...user, name: stored.name, profile: stored.profile } });
+  return NextResponse.json({ user: { ...user, name, profile } });
 }

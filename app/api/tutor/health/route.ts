@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { currentUser, unauthorized } from '@/lib/store-helpers';
+import { currentUser, storeName, unauthorized } from '@/lib/store-helpers';
 import { llmAvailable, llmPing, getLastLlmError } from '@/lib/ai/tutor';
 
 export const dynamic = 'force-dynamic';
@@ -12,13 +12,14 @@ export const dynamic = 'force-dynamic';
  * and the provider's error message if the probe fails.
  */
 export async function GET() {
-  const user = currentUser();
+  const user = await currentUser();
   if (!user) return unauthorized();
 
   const cfg = llmAvailable();
   if (!cfg) {
     return NextResponse.json({
       configured: false,
+      storage: storeName(),
       engine: 'deterministic',
       message:
         'No GATE_BT_LLM_API_KEY set. The tutor is answering from the built-in syllabus engine. Add the key to .env.local and restart the dev server.',
@@ -29,6 +30,7 @@ export async function GET() {
 
   return NextResponse.json({
     configured: true,
+    storage: storeName(),
     engine: ping.ok ? 'llm' : 'deterministic (LLM unreachable)',
     baseUrl: cfg.baseUrl,
     model: cfg.model,

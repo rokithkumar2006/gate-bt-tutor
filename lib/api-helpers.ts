@@ -1,7 +1,7 @@
 // Shared helpers for API route handlers.
 import { cookies, headers } from 'next/headers';
 import { NextResponse } from 'next/server';
-import { destroySession, sessionUser } from './store';
+import { store } from './db';
 import type { User } from './types';
 
 export const SESSION_COOKIE = 'gbt_session';
@@ -24,8 +24,8 @@ export function sessionToken(): string | undefined {
   return cookies().get(SESSION_COOKIE)?.value;
 }
 
-export function currentUser(): User | null {
-  return sessionUser(sessionToken());
+export async function currentUser(): Promise<User | null> {
+  return store.sessionUser(sessionToken());
 }
 
 export function unauthorized(): NextResponse {

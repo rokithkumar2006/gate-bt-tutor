@@ -5,35 +5,35 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Dna, Loader2 } from 'lucide-react';
 import DnaPattern from '@/components/DnaPattern';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { signIn, user, loading: authLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
+  // Only redirect once the stored session has finished loading, otherwise an
+  // already-signed-in user is briefly seen as logged out.
   useEffect(() => {
-    fetch('/api/auth/me')
-      .then((r) => {
-        if (r.ok) router.replace('/dashboard');
-      })
-      .catch(() => {});
-  }, [router]);
+    if (!authLoading && user) router.replace('/dashboard');
+  }, [authLoading, user, router]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
     setError('');
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await res.json();
+    if (!email.trim() || !password) {
+      setBusy(false);
+      setError('Email and password are required');
+      return;
+    }
+    const { error: err } = await signIn(email.trim(), password);
     setBusy(false);
-    if (!res.ok) {
-      setError(data.error ?? 'Login failed');
+    if (err) {
+      setError(err);
       return;
     }
     router.replace('/dashboard');

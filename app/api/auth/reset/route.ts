@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { badRequest, consumeResetCode, findUserByEmail, hashPassword, readJson } from '@/lib/store-helpers';
-import { db } from '@/lib/store-helpers';
+import { badRequest, hashPassword, readJson, store } from '@/lib/store-helpers';
 
 export async function POST(req: Request) {
   const body = await readJson<{ email?: string; code?: string; password?: string }>(req);
@@ -12,13 +11,11 @@ export async function POST(req: Request) {
     return badRequest('Email, 6-digit code and a new password (≥6 chars) are required');
   }
 
-  const user = findUserByEmail(email);
+  const user = await store.findUserByEmail(email);
   if (!user) return badRequest('Account not found');
-  if (!consumeResetCode(user.id, code)) return badRequest('Invalid or expired reset code');
+  if (!(await store.consumeResetCode(user.id, code))) return badRequest('Invalid or expired reset code');
 
-  const stored = db.users.find((u) => u.id === user.id);
-  if (!stored) return badRequest('Account not found');
-  stored.passwordHash = hashPassword(password);
+  await store.updateUser(user.id, { passwordHash: hashPassword(password) });
 
   return NextResponse.json({ ok: true });
 }

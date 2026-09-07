@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { badRequest, createResetCode, findUserByEmail, readJson } from '@/lib/store-helpers';
+import { badRequest, readJson, store } from '@/lib/store-helpers';
 
 /**
  * Forgot password (demo mode): the reset code is returned in the response and
@@ -10,13 +10,13 @@ export async function POST(req: Request) {
   const email = (body.email ?? '').trim().toLowerCase();
   if (!email) return badRequest('Email is required');
 
-  const user = findUserByEmail(email);
+  const user = await store.findUserByEmail(email);
   if (!user) {
     // Do not leak whether the account exists.
     return NextResponse.json({ ok: true, message: 'If that email is registered, a reset code was sent.', demoCode: null });
   }
 
-  const code = createResetCode(user.id);
+  const code = await store.createResetCode(user.id);
   return NextResponse.json({
     ok: true,
     message: 'If that email is registered, a reset code was sent.',

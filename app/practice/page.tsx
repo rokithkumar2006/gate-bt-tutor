@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { clsx } from 'clsx';
 import QuestionCard, { scoreAnswer } from '@/components/QuestionCard';
 import { Badge, Card, EmptyState, SectionTitle, Spinner } from '@/components/ui';
-import { QUESTIONS, pickQuestions } from '@/lib/content/questions';
+import { QUESTIONS, countMatching, selectQuestions } from '@/lib/content/questions';
 import { SUBJECTS, subjectBySlug } from '@/lib/content/subjects';
 import type { QLevel, QType, Question } from '@/lib/types';
 import { Play, CheckCircle2, XCircle, Circle, RotateCcw, ArrowRight, Save } from 'lucide-react';
@@ -38,23 +38,63 @@ function PracticePageInner() {
   const [results, setResults] = useState<SessionResult[]>([]);
   const [saved, setSaved] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Live count for the current filter combination, so the user can see how many
+  // questions exist BEFORE starting a session.
+  const matching = useMemo(
+    () =>
+      countMatching({
+        subjects: subject ? [subject] : SUBJECTS.map((s) => s.slug),
+        level: level || null,
+        types: type ? [type as QType] : undefined,
+      }),
+    [subject, level, type],
+  );
 
   const start = () => {
     setStarting(true);
+    setNotice(null);
+    setError(null);
     // small delay so the button state is visible
     setTimeout(() => {
-      const qs = pickQuestions({
-        subjects: subject ? [subject] : SUBJECTS.map((s) => s.slug),
-        level: (level || 'basic') as QLevel,
-        types: type ? [type as QType] : ['mcq', 'msq', 'nat'],
-        count,
-        seed: Math.floor(Math.random() * 1e9),
-      });
-      setSession(qs);
-      setIdx(0);
-      setResults([]);
-      setSaved(false);
-      setStarting(false);
+      try {
+        const res = selectQuestions({
+          subjects: subject ? [subject] : SUBJECTS.map((s) => s.slug),
+          // '' = "Mix of all levels". Previously this fell back to 'basic',
+          // which searched only the basic pool and silently under-filled.
+          level: level || null,
+          types: type ? [type as QType] : undefined,
+          count,
+          seed: Math.floor(Math.random() * 1e9),
+        });
+
+        if (res.questions.length === 0) {
+          setError('No questions match these filters. Try a different subject, level or type.');
+          setStarting(false);
+          return;
+        }
+        if (res.widenedLevel) {
+          setNotice(
+            `Only ${res.exactMatches} question${res.exactMatches === 1 ? '' : 's'} available at this level — added ${res.questions.length - res.exactMatches} from other levels to reach ${res.questions.length}.`,
+          );
+        } else if (res.questions.length < count) {
+          setNotice(
+            `Only ${res.questions.length} question${res.questions.length === 1 ? '' : 's'} are currently available for the selected filters.`,
+          );
+        }
+
+        setSession(res.questions);
+        setIdx(0);
+        setResults([]);
+        setSaved(false);
+      } catch (e) {
+        console.error('[practice] failed to build session:', e);
+        setError('Unable to load questions. Please try again.');
+      } finally {
+        setStarting(false);
+      }
     }, 60);
   };
 
@@ -108,8 +148,18 @@ function PracticePageInner() {
       answers: results.map((r) => ({ questionId: r.q.id, selected: r.selected, correct: r.correct, attempted: r.attempted, earned: r.earned })),
       subject: subject || undefined,
     };
-    await fetch('/api/attempts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }).catch(() => {});
-    setSaved(true);
+    try {
+      const res = await fetch('/api/attempts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error(`save failed with ${res.status}`);
+      setSaved(true);
+    } catch (e) {
+      console.error('[practice] could not save attempt:', e);
+      setError('Could not save this attempt to your analytics. Your answers are still shown below.');
+    }
   };
 
   // ---------- session complete ----------
@@ -152,9 +202,18 @@ function PracticePageInner() {
                   {r.earned < 0 && <span className="ml-1 text-rose-600">(−0.25 negative)</span>}
                 </div>
                 <div className="mt-2 rounded-lg bg-white/70 p-3 text-xs leading-relaxed text-ink-600">{r.q.explanation}</div>
+                <div className="mt-1.5 text-[11px] text-ink-400">
+                  Concept: <span className="font-semibold text-ink-600">{r.q.concept}</span>
+                </div>
               </div>
             ))}
           </div>
+
+          {error && (
+            <div className="mb-4 rounded-xl bg-rose-50 px-3.5 py-2.5 text-sm font-medium text-rose-700 ring-1 ring-rose-200">
+              {error}
+            </div>
+          )}
 
           <div className="flex flex-wrap justify-center gap-3">
             {!saved ? (
@@ -200,6 +259,12 @@ function PracticePageInner() {
             <RotateCcw className="h-3.5 w-3.5" /> Quit
           </button>
         </Card>
+
+        {notice && (
+          <div className="rounded-xl bg-amber-50 px-3.5 py-2.5 text-sm font-medium text-amber-700 ring-1 ring-amber-200">
+            {notice}
+          </div>
+        )}
 
         <QuestionCard key={current.id} question={current} index={idx} onSubmitResult={onSubmit} />
 
@@ -263,8 +328,19 @@ function PracticePageInner() {
                 </option>
               ))}
             </select>
+            <p className={clsx('mt-1.5 text-xs', matching < count ? 'font-medium text-amber-600' : 'text-ink-400')}>
+              {matching === 0
+                ? 'No questions match these filters'
+                : `${matching} question${matching === 1 ? '' : 's'} match these filters`}
+              {matching > 0 && matching < count ? ' — fewer than requested' : ''}
+            </p>
           </div>
         </div>
+        {error && (
+          <div className="mt-4 rounded-xl bg-rose-50 px-3.5 py-2.5 text-sm font-medium text-rose-700 ring-1 ring-rose-200">
+            {error}
+          </div>
+        )}
         <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
           <p className="text-xs text-ink-400">
             MCQ: +1 / −0.25 · MSQ: +1 (exact set only) · NAT: +1 (±1% tolerance)

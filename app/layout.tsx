@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import AuthTokenBridge from '@/components/AuthTokenBridge';
+import { AuthProvider } from '@/contexts/AuthContext';
 
 export const metadata: Metadata = {
   title: 'GATE BT Personal Tutor',
@@ -14,7 +16,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <AuthTokenBridge />
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   );
 }

@@ -29,43 +29,96 @@ function mulberry32(seed: number) {
   };
 }
 
+function shuffleWith<T>(arr: T[], rnd: () => number): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/**
+ * `level: null` (or omitted) means "any level" — previously callers had to pass
+ * a concrete level, so the practice page's "Mix of all levels" option silently
+ * collapsed to 'basic' and searched only ~18% of the bank.
+ */
 export function pickQuestions(opts: {
   subjects: string[];
-  level: Question['level'];
+  level?: Question['level'] | null;
   types?: Question['type'][];
   count: number;
   seed: number;
   excludeIds?: Set<string>;
 }): Question[] {
+  return selectQuestions(opts).questions;
+}
+
+export interface SelectionResult {
+  questions: Question[];
+  /** Questions matching the exact filters, before any widening. */
+  exactMatches: number;
+  /** True when the level filter had to be relaxed to reach `count`. */
+  widenedLevel: boolean;
+  /** Total available under the exact filters (what the UI should report). */
+  available: number;
+}
+
+/**
+ * Filter → shuffle → take. Returns metadata so the UI can tell the user when
+ * fewer questions exist than they asked for, instead of silently under-filling.
+ *
+ * Guarantees: no duplicate ids, respects `excludeIds`, and only ever widens the
+ * LEVEL (never subject or type) — and reports it when it does.
+ */
+export function selectQuestions(opts: {
+  subjects: string[];
+  level?: Question['level'] | null;
+  types?: Question['type'][];
+  count: number;
+  seed: number;
+  excludeIds?: Set<string>;
+}): SelectionResult {
   const rnd = mulberry32(opts.seed);
-  const pool = QUESTIONS.filter(
-    (q) =>
-      opts.subjects.includes(q.subject) &&
-      q.level === opts.level &&
-      (!opts.types || opts.types.length === 0 || opts.types.includes(q.type)) &&
-      !(opts.excludeIds && opts.excludeIds.has(q.id)),
-  );
-  // fisher–yates partial shuffle
-  const arr = [...pool];
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(rnd() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  const picked = arr.slice(0, opts.count);
-  // top-up from adjacent pools if a strict filter left too few
-  if (picked.length < opts.count) {
+  const wantTypes = opts.types && opts.types.length > 0 ? opts.types : null;
+
+  const matchesBase = (q: Question) =>
+    opts.subjects.includes(q.subject) &&
+    (!wantTypes || wantTypes.includes(q.type)) &&
+    !(opts.excludeIds && opts.excludeIds.has(q.id));
+
+  // Exact pool: honours the level filter when one was given.
+  const exactPool = QUESTIONS.filter((q) => matchesBase(q) && (!opts.level || q.level === opts.level));
+
+  const picked = shuffleWith(exactPool, rnd).slice(0, opts.count);
+  const exactMatches = exactPool.length;
+  let widenedLevel = false;
+
+  // Top up from other levels only if the user pinned a level and it ran dry.
+  if (picked.length < opts.count && opts.level) {
     const used = new Set(picked.map((q) => q.id));
-    const fallback = QUESTIONS.filter(
-      (q) =>
-        opts.subjects.includes(q.subject) &&
-        q.level === opts.level &&
-        !used.has(q.id) &&
-        !(opts.excludeIds && opts.excludeIds.has(q.id)),
-    );
-    for (const q of fallback) {
+    const others = QUESTIONS.filter((q) => matchesBase(q) && q.level !== opts.level && !used.has(q.id));
+    for (const q of shuffleWith(others, rnd)) {
       if (picked.length >= opts.count) break;
       picked.push(q);
+      widenedLevel = true;
     }
   }
-  return picked;
+
+  return { questions: picked, exactMatches, widenedLevel, available: exactMatches };
+}
+
+/** How many questions match a filter combination — used to drive the UI. */
+export function countMatching(opts: {
+  subjects: string[];
+  level?: Question['level'] | null;
+  types?: Question['type'][];
+}): number {
+  const wantTypes = opts.types && opts.types.length > 0 ? opts.types : null;
+  return QUESTIONS.filter(
+    (q) =>
+      opts.subjects.includes(q.subject) &&
+      (!opts.level || q.level === opts.level) &&
+      (!wantTypes || wantTypes.includes(q.type)),
+  ).length;
 }

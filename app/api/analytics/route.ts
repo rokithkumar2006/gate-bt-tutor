@@ -1,17 +1,16 @@
 import { NextResponse } from 'next/server';
-import { attemptsForUser, currentUser, unauthorized } from '@/lib/store-helpers';
+import { currentUser, store, unauthorized } from '@/lib/store-helpers';
 import { computeAnalytics } from '@/lib/analytics';
 import { whatToStudyNext } from '@/lib/planner';
-import { getProgress } from '@/lib/store';
 
 export async function GET() {
-  const user = currentUser();
+  const user = await currentUser();
   if (!user) return unauthorized();
 
-  const attempts = attemptsForUser(user.id, 200);
+  const attempts = await store.attemptsForUser(user.id, 200);
   const analytics = computeAnalytics(user.id, attempts);
 
-  const progress = getProgress(user.id);
+  const progress = await store.getProgress(user.id);
   const nextUp = whatToStudyNext(new Set(Object.keys(progress.completedTopics)), 5);
 
   return NextResponse.json({

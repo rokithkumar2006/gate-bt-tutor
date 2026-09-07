@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
 import { Dna, Loader2 } from 'lucide-react';
 
 const YEARS = ['1st Year', '2nd Year', '3rd Year', 'Final Year', 'Working Professional'];
@@ -10,6 +11,7 @@ const EXAMS = ['GATE BT 2026', 'GATE BT 2027', 'GATE BT 2028', 'College Exams', 
 
 export default function SignupPage() {
   const router = useRouter();
+  const { signUp, user, loading: authLoading } = useAuth();
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -22,13 +24,10 @@ export default function SignupPage() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
+  // Wait for the stored session before redirecting (see login page).
   useEffect(() => {
-    fetch('/api/auth/me')
-      .then((r) => {
-        if (r.ok) router.replace('/dashboard');
-      })
-      .catch(() => {});
-  }, [router]);
+    if (!authLoading && user) router.replace('/dashboard');
+  }, [authLoading, user, router]);
 
   const set = (k: string, v: string | number) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -36,26 +35,26 @@ export default function SignupPage() {
     e.preventDefault();
     setBusy(true);
     setError('');
-    const res = await fetch('/api/auth/signup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: form.name,
-        email: form.email,
-        password: form.password,
-        profile: {
-          college: form.college,
-          yearOfStudy: form.yearOfStudy,
-          targetExam: form.targetExam,
-          dailyHours: Number(form.dailyHours),
-          dailyGoalMin: Math.round(Number(form.dailyHours) * 60),
-        },
-      }),
+    if (!form.name.trim() || !form.email.trim() || !form.password) {
+      setBusy(false);
+      setError('Name, email and password are required');
+      return;
+    }
+    const { error: err } = await signUp({
+      name: form.name.trim(),
+      email: form.email.trim(),
+      password: form.password,
+      profile: {
+        college: form.college,
+        yearOfStudy: form.yearOfStudy,
+        targetExam: form.targetExam,
+        dailyHours: Number(form.dailyHours),
+        dailyGoalMin: Math.round(Number(form.dailyHours) * 60),
+      },
     });
-    const data = await res.json();
     setBusy(false);
-    if (!res.ok) {
-      setError(data.error ?? 'Signup failed');
+    if (err) {
+      setError(err);
       return;
     }
     router.replace('/dashboard');

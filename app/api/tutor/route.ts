@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { attemptsForUser, currentUser, getProgress, logRevision, unauthorized } from '@/lib/store-helpers';
+import { currentUser, store, unauthorized } from '@/lib/store-helpers';
 import { respondAsync, recognizeCommand } from '@/lib/ai/tutor';
 import type { TutorContext } from '@/lib/ai/tutor';
 import { computeAnalytics } from '@/lib/analytics';
@@ -11,7 +11,7 @@ import type { TutorMessage } from '@/lib/types';
  * reply: { reply: TutorReply, command: string | null, context: { subject, topic } }
  */
 export async function POST(req: Request) {
-  const user = currentUser();
+  const user = await currentUser();
   if (!user) return unauthorized();
 
   const body = (await req.json().catch(() => null)) as {
@@ -25,11 +25,11 @@ export async function POST(req: Request) {
   }
 
   // If no explicit context, fall back to the user's current subject/topic.
-  const progress = getProgress(user.id);
+  const progress = await store.getProgress(user.id);
   const subject = body.subject ?? progress.currentSubject ?? undefined;
   const topic = body.topic ?? progress.currentTopic ?? undefined;
 
-  const attempts = attemptsForUser(user.id, 100);
+  const attempts = await store.attemptsForUser(user.id, 100);
   const analytics = computeAnalytics(user.id, attempts);
 
   const ctx: TutorContext = {
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
 
   // Log "Quick Revision" usage into revision history.
   if (command === 'Quick Revision' && topic) {
-    logRevision(user.id, topic, 'tutor');
+    await store.logRevision(user.id, topic, 'tutor');
   }
 
   return NextResponse.json({ reply, command, context: { subject, topic } });

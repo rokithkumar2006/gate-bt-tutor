@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { badRequest, createSession, createUser, findUserByEmail, readJson, setSessionCookie } from '@/lib/store-helpers';
+import { badRequest, readJson, setSessionCookie, storageMisconfigured, store } from '@/lib/store-helpers';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -18,9 +18,21 @@ export async function POST(req: Request) {
   if (!name) return badRequest('Name is required');
   if (!EMAIL_RE.test(email)) return badRequest('Valid email is required');
   if (password.length < 6) return badRequest('Password must be at least 6 characters');
-  if (findUserByEmail(email)) return badRequest('An account with this email already exists');
 
-  const user = createUser({
+  if (storageMisconfigured()) {
+    console.error('[auth] signup blocked: no persistent storage configured');
+    return NextResponse.json(
+      {
+        error:
+          'The server has no database configured, so accounts cannot be saved. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY and redeploy.',
+      },
+      { status: 503 },
+    );
+  }
+
+  if (await store.findUserByEmail(email)) return badRequest('An account with this email already exists');
+
+  const user = await store.createUser({
     name,
     email,
     password,
@@ -33,7 +45,7 @@ export async function POST(req: Request) {
     },
   });
 
-  const token = createSession(user.id);
-  const res = NextResponse.json({ user }, { status: 201 });
+  const token = await store.createSession(user.id);
+  const res = NextResponse.json({ user, token }, { status: 201 });
   return setSessionCookie(res, token);
 }

@@ -5,11 +5,12 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { clsx } from 'clsx';
 import {
-  LayoutDashboard, Dna, Bot, PenLine, Archive, Timer, Calculator, BookOpen,
+  LayoutDashboard, Dna, Bot, PenLine, Archive, Timer, Calculator, BookOpen, FileText,
   BarChart3, AlertTriangle, CalendarRange, TrendingUp, Settings, LogOut,
   Menu, X, Flame,
 } from 'lucide-react';
 import type { User } from '@/lib/types';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AppData {
   user: User | null;
@@ -30,6 +31,7 @@ const NAV = [
   { href: '/tutor', label: 'AI Tutor', icon: Bot, group: 'Learn' },
   { href: '/practice', label: 'Question Practice', icon: PenLine, group: 'Practice' },
   { href: '/pyqs', label: 'PYQ Bank', icon: Archive, group: 'Practice' },
+  { href: '/papers', label: 'Old Question Papers', icon: FileText, group: 'Practice' },
   { href: '/mock', label: 'Mock Tests', icon: Timer, group: 'Practice' },
   { href: '/numericals', label: 'Numericals', icon: Calculator, group: 'Practice' },
   { href: '/revision', label: 'Revision Center', icon: BookOpen, group: 'Revise' },
@@ -41,6 +43,7 @@ const NAV = [
 ];
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
+  const { user: authUser, loading: authLoading, signOut } = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [streak, setStreak] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -51,25 +54,35 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const refresh = useCallback(() => {
     fetch('/api/auth/me')
       .then(async (r) => {
-        if (!r.ok) {
+        // Only a genuine 401 means "not logged in". A 500 or a transient
+        // network blip must not throw the user out of the app.
+        if (r.status === 401) {
           setUser(null);
-          router.replace('/login');
           return;
         }
+        if (!r.ok) return;
         const data = await r.json();
         setUser(data.user);
         setStreak(data.streak ?? 0);
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [router]);
+  }, []);
 
+  // Route guard. CRITICAL: never redirect while the stored session is still
+  // being restored, or a signed-in user is thrown out to /login on every
+  // refresh. Only act once authLoading === false.
   useEffect(() => {
+    if (authLoading) return;
+    if (!authUser) {
+      router.replace('/login');
+      return;
+    }
     refresh();
-  }, [refresh]);
+  }, [authLoading, authUser, router, refresh]);
 
   const logout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
+    await signOut();
     router.replace('/login');
   };
 
@@ -169,7 +182,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </header>
 
         <main className="px-4 py-6 sm:px-6 lg:ml-64 lg:px-8">
-          {loading ? (
+          {authLoading || loading ? (
             <div className="flex items-center justify-center py-24">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-600 border-t-transparent" />
             </div>

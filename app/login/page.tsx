@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Dna, Loader2 } from 'lucide-react';
 import DnaPattern from '@/components/DnaPattern';
+import { setToken } from '@/lib/auth-fetch';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -36,6 +37,10 @@ export default function LoginPage() {
       setError(data.error ?? 'Login failed');
       return;
     }
+    // Persist the token BEFORE navigating. The fetch patch also captures it,
+    // but doing it here guarantees it is stored before /dashboard mounts and
+    // issues its first authenticated request.
+    if (data.token) setToken(data.token);
     router.replace('/dashboard');
   };
 

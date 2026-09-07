@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { setToken } from '@/lib/auth-fetch';
 import { Dna, Loader2 } from 'lucide-react';
 
 const YEARS = ['1st Year', '2nd Year', '3rd Year', 'Final Year', 'Working Professional'];
@@ -58,6 +59,8 @@ export default function SignupPage() {
       setError(data.error ?? 'Signup failed');
       return;
     }
+    // Store the token before navigating — see the note in app/login/page.tsx.
+    if (data.token) setToken(data.token);
     router.replace('/dashboard');
   };
 

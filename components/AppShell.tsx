@@ -52,11 +52,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const refresh = useCallback(() => {
     fetch('/api/auth/me')
       .then(async (r) => {
-        if (!r.ok) {
+        // Only a genuine 401 means "not logged in". A 500 or a transient
+        // network blip must not throw the user out of the app.
+        if (r.status === 401) {
           setUser(null);
           router.replace('/login');
           return;
         }
+        if (!r.ok) return;
         const data = await r.json();
         setUser(data.user);
         setStreak(data.streak ?? 0);

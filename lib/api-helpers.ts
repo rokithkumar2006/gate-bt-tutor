@@ -22,11 +22,25 @@ export function badRequest(error: string): NextResponse {
   return NextResponse.json({ error }, { status: 400 });
 }
 
+// When the app is served inside a cross-site iframe (the e2b/Arena sandbox
+// preview at https://<port>-<id>.e2b.app), a `SameSite=Lax` cookie is NOT sent
+// back by the browser — every API call then looks unauthenticated and the user
+// appears to be logged out the moment they click anything. `SameSite=None`
+// fixes that, but browsers only accept it together with `Secure`, which in turn
+// requires HTTPS. Set GATE_BT_CROSS_SITE_COOKIE=1 for those HTTPS previews.
+// Plain local http://localhost development keeps Lax (Secure would be dropped).
+const CROSS_SITE_COOKIE = process.env.GATE_BT_CROSS_SITE_COOKIE === '1';
+
+export function sessionCookieOptions() {
+  return CROSS_SITE_COOKIE
+    ? { sameSite: 'none' as const, secure: true }
+    : { sameSite: 'lax' as const, secure: process.env.NODE_ENV === 'production' };
+}
+
 export function setSessionCookie(res: NextResponse, token: string) {
   res.cookies.set(SESSION_COOKIE, token, {
     httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    ...sessionCookieOptions(),
     path: '/',
     maxAge: 60 * 60 * 24 * 7,
   });
@@ -34,7 +48,12 @@ export function setSessionCookie(res: NextResponse, token: string) {
 }
 
 export function clearSessionCookie(res: NextResponse) {
-  res.cookies.set(SESSION_COOKIE, '', { httpOnly: true, path: '/', maxAge: 0 });
+  res.cookies.set(SESSION_COOKIE, '', {
+    httpOnly: true,
+    ...sessionCookieOptions(),
+    path: '/',
+    maxAge: 0,
+  });
   return res;
 }
 

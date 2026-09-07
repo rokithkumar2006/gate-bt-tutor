@@ -1,13 +1,31 @@
 // Shared helpers for API route handlers.
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { destroySession, sessionUser } from './store';
 import type { User } from './types';
 
 export const SESSION_COOKIE = 'gbt_session';
 
+// Resolve the session token from either the cookie or an `Authorization:
+// Bearer <token>` header.
+//
+// Cookies alone are not enough: in the sandbox preview the app runs in a
+// cross-site iframe, and browsers with third-party-cookie blocking (Chrome
+// incognito, Safari ITP, Firefox ETP) drop the session cookie even when it is
+// correctly issued as SameSite=None; Secure. The client therefore also keeps
+// the token in localStorage and sends it as a bearer header, which is immune
+// to third-party cookie policy.
+export function sessionToken(): string | undefined {
+  const auth = headers().get('authorization');
+  if (auth?.toLowerCase().startsWith('bearer ')) {
+    const token = auth.slice(7).trim();
+    if (token) return token;
+  }
+  return cookies().get(SESSION_COOKIE)?.value;
+}
+
 export function currentUser(): User | null {
-  return sessionUser(cookies().get(SESSION_COOKIE)?.value);
+  return sessionUser(sessionToken());
 }
 
 export function unauthorized(): NextResponse {

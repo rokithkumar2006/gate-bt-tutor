@@ -59,7 +59,13 @@ export function storeName(): string {
  * password" with an accurate message.
  */
 export function storageMisconfigured(): boolean {
-  return store.name === 'json-file' && isServerlessHost();
+  // Supabase Auth carries its own persistent database, so the JSON fallback
+  // being active does not imply data loss when it is configured.
+  const supabaseAuth = Boolean(
+    (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL) &&
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+  );
+  return store.name === 'json-file' && isServerlessHost() && !supabaseAuth;
 }
 
 export type { DataStore, RevisionEntry, StoredUser } from './types';

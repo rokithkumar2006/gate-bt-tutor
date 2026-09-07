@@ -2,6 +2,7 @@
 import { cookies, headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { store } from './db';
+import { supabaseAuthConfigured, verifyAccessToken } from './supabase/server';
 import type { User } from './types';
 
 export const SESSION_COOKIE = 'gbt_session';
@@ -24,8 +25,31 @@ export function sessionToken(): string | undefined {
   return cookies().get(SESSION_COOKIE)?.value;
 }
 
+/**
+ * Resolve the caller's identity.
+ *
+ * When Supabase Auth is configured the bearer token is a Supabase access token
+ * and is verified against Supabase. Otherwise we fall back to the built-in
+ * session store, so local development keeps working with zero configuration.
+ *
+ * Every existing API route calls this, so both auth systems light up all 14
+ * routes without touching any of them.
+ */
 export async function currentUser(): Promise<User | null> {
-  return store.sessionUser(sessionToken());
+  const token = sessionToken();
+  if (!token) return null;
+
+  if (supabaseAuthConfigured()) {
+    try {
+      const user = await verifyAccessToken(token);
+      if (user) return user;
+    } catch (e) {
+      console.error('[auth] Supabase token verification failed:', e);
+    }
+    // Fall through: a legacy built-in session may still be valid mid-migration.
+  }
+
+  return store.sessionUser(token);
 }
 
 export function unauthorized(): NextResponse {

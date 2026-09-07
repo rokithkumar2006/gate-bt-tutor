@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { isServerlessHost, storeName } from '@/lib/store-helpers';
+import { supabaseAuthConfigured } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,10 +19,12 @@ export async function GET() {
   const hasUrl = Boolean(process.env.SUPABASE_URL);
   const hasKey = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-  const persistent = backend === 'supabase' || !serverless;
+  const authMode = supabaseAuthConfigured() ? 'supabase-auth' : 'built-in';
+  const persistent = backend === 'supabase' || authMode === 'supabase-auth' || !serverless;
 
   return NextResponse.json({
     backend,
+    authMode,
     serverless,
     persistent,
     supabaseUrlSet: hasUrl,
